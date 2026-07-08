@@ -5,6 +5,7 @@ import sys
 from dotenv import load_dotenv
 
 from agents.scenario.agent import generate_scenario
+from agents.storyboard.agent import generate_storyboard
 from pipeline.run_pipeline import run
 
 load_dotenv()
@@ -25,12 +26,21 @@ def main() -> None:
     scenario_parser = subparsers.add_parser("scenario", help="1단계 시나리오 생성만 실행")
     scenario_parser.add_argument("logline", help="로그라인 또는 기획 아이디어")
 
+    storyboard_parser = subparsers.add_parser(
+        "storyboard", help="1~2단계(시나리오→스토리보드) 실행"
+    )
+    storyboard_parser.add_argument("logline", help="로그라인 또는 기획 아이디어")
+
     args = parser.parse_args()
 
     if args.command == "run":
         run(args.logline)
     elif args.command == "scenario":
         print(generate_scenario(args.logline).scene_script)
+    elif args.command == "storyboard":
+        scenario = generate_scenario(args.logline)
+        storyboard = generate_storyboard(scenario.scene_script)
+        print(storyboard.model_dump_json(indent=2))
 
 
 if __name__ == "__main__":

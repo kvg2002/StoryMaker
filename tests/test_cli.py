@@ -38,3 +38,22 @@ def test_cli_scenario_without_logline_exits_nonzero() -> None:
         text=True,
     )
     assert result.returncode != 0
+
+
+def test_cli_help_lists_storyboard_subcommand() -> None:
+    result = subprocess.run(
+        [sys.executable, "cli.py", "--help"],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0
+    assert "storyboard" in result.stdout
+
+
+def test_cli_storyboard_without_logline_exits_nonzero() -> None:
+    result = subprocess.run(
+        [sys.executable, "cli.py", "storyboard"],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
