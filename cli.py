@@ -34,7 +34,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command == "run":
-        run(args.logline)
+        print(run(args.logline).model_dump_json(indent=2))
     elif args.command == "scenario":
         print(generate_scenario(args.logline).scene_script)
     elif args.command == "storyboard":
