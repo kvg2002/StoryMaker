@@ -22,7 +22,7 @@ uv run pytest
 ## 실행
 
 ```bash
-uv run storymaker run "겁쟁이가 용을 잡아야 한다"
+uv run python cli.py run "겁쟁이가 용을 잡아야 한다"
 ```
 
 애니매틱 렌더링에는 시스템에 `ffmpeg`가 설치되어 있어야 한다.
