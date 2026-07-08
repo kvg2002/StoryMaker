@@ -43,7 +43,7 @@ StoryMaker/
 │   ├── gemini_client.py                   # Gemini API 래퍼
 │   └── io_utils.py                        # JSON 입출력, 경로 규칙
 ├── docs/
-│   └── AI영상_프리프로덕션_파이프라인_기획서.pdf
+│   └── README.md                          # 원본 기획서 PDF 보관 안내(파일 자체는 로컬에 없어 이동 대상 아님)
 ├── tests/
 │   ├── scenario/
 │   ├── storyboard/
