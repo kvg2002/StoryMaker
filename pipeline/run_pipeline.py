@@ -29,18 +29,21 @@ class PipelineResult(BaseModel):
     video_path: Path | None
 
 
-def _slugify(logline: str) -> str:
+def slugify_logline(logline: str) -> str:
     slug = re.sub(r"[^0-9A-Za-z가-힣]+", "-", logline).strip("-")
     return slug[:40] or "storymaker"
 
 
-def run(logline: str, project_dir: Path | None = None) -> PipelineResult:
-    if project_dir is None:
-        project_dir = OUTPUTS_ROOT / _slugify(logline)
+def run_from_storyboard(
+    scenario: ScenarioOutput, storyboard: StoryboardOutput, project_dir: Path
+) -> PipelineResult:
+    """스토리보드 이후 단계(이미지→타임라인→검증→docx→렌더링)만 실행한다.
+
+    시나리오/스토리보드를 사람이 검토·수정한 뒤 이어서 진행하는 UI의 3단계 트리거가
+    이 함수를 직접 호출한다 — `run()`처럼 scenario/storyboard를 새로 생성하지 않는다.
+    """
     images_dir = project_dir / "images"
 
-    scenario = generate_scenario(logline)
-    storyboard = generate_storyboard(scenario.scene_script)
     image_failures = generate_contact_sheets(storyboard.shots, images_dir)
 
     timeline = generate_timeline(storyboard.shots)
@@ -69,3 +72,12 @@ def run(logline: str, project_dir: Path | None = None) -> PipelineResult:
         docx_path=docx_path,
         video_path=video_path,
     )
+
+
+def run(logline: str, project_dir: Path | None = None) -> PipelineResult:
+    if project_dir is None:
+        project_dir = OUTPUTS_ROOT / slugify_logline(logline)
+
+    scenario = generate_scenario(logline)
+    storyboard = generate_storyboard(scenario.scene_script)
+    return run_from_storyboard(scenario, storyboard, project_dir)

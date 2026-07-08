@@ -1,7 +1,7 @@
 from agents.animatic.schemas import Cut, Motion, Overlays, Timeline
 from agents.scenario.schemas import ScenarioOutput
 from agents.storyboard.schemas import Shot, StoryboardOutput
-from pipeline.run_pipeline import PipelineResult, run
+from pipeline.run_pipeline import PipelineResult, run, run_from_storyboard
 
 FAKE_SCENARIO = ScenarioOutput(scene_script="INT. 낡은 극장 - 밤\n\n지우가 대본을 꺼낸다.")
 FAKE_STORYBOARD = StoryboardOutput(
@@ -104,3 +104,38 @@ def test_run_derives_project_dir_from_logline_when_not_given(monkeypatch) -> Non
     result = run("겁쟁이가 용을 잡아야 한다")
 
     assert result.project_dir.parent.name == "outputs"
+
+
+def test_run_from_storyboard_does_not_regenerate_scenario_or_storyboard(tmp_path, monkeypatch) -> None:
+    _patch_all_stages(monkeypatch)
+    monkeypatch.setattr(
+        "pipeline.run_pipeline.generate_scenario",
+        lambda logline: (_ for _ in ()).throw(AssertionError("should not regenerate scenario")),
+    )
+    monkeypatch.setattr(
+        "pipeline.run_pipeline.generate_storyboard",
+        lambda scene_script: (_ for _ in ()).throw(AssertionError("should not regenerate storyboard")),
+    )
+
+    edited_scenario = ScenarioOutput(scene_script="사용자가 직접 수정한 씬 대본")
+    edited_storyboard = StoryboardOutput(
+        shots=[
+            Shot(
+                size="CU",
+                angle="high",
+                movement="static",
+                duration=2,
+                description="사용자가 수정한 샷 설명",
+                dialogue="",
+                audio="",
+                sceneSlug="S1",
+            )
+        ]
+    )
+
+    result = run_from_storyboard(edited_scenario, edited_storyboard, tmp_path)
+
+    assert result.scenario == edited_scenario
+    assert result.storyboard == edited_storyboard
+    assert result.project_dir == tmp_path
+    assert result.docx_path == tmp_path / "storyboard.docx"
