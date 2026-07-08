@@ -1,4 +1,4 @@
-"""샷 명세(Shot) -> 이미지 생성 프롬프트 번역 (Claude 담당)."""
+"""샷 명세(Shot) -> 이미지 생성 프롬프트 번역 (Gemini 담당)."""
 from agents.storyboard.schemas import Shot
 
 

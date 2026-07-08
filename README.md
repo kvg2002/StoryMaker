@@ -11,11 +11,16 @@
 각 단계의 방법론 레퍼런스는 `agents/<stage>/prompts/training.md`에 있다. 전체 설계는
 `docs/superpowers/specs/2026-07-08-storymaker-repo-scaffold-design.md` 참고.
 
+## 기술 스택
+
+Gemini 단일 백엔드로 동작한다 — 언어·구조 판단(시나리오/샷 리스트/타임라인)은 `gemini-2.5-pro`,
+콘티 이미지 생성은 `gemini-2.5-flash-image`. 두 역할 모두 `shared/gemini_client.py`의 클라이언트를 사용한다.
+
 ## 개발 환경
 
 ```bash
 uv sync
-cp .env.example .env  # ANTHROPIC_API_KEY, GEMINI_API_KEY 채우기
+cp .env.example .env  # GEMINI_API_KEY 채우기
 uv run pytest
 ```
 
