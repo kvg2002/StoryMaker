@@ -1,11 +1,6 @@
 from unittest.mock import MagicMock
 
-import pytest
-
 from agents.storyboard.agent import generate_storyboard
-from agents.storyboard.docx_export import export_docx
-from agents.storyboard.image_gen import generate_contact_sheet_image
-from agents.storyboard.image_prompt import shot_to_image_prompt
 from agents.storyboard.schemas import Shot, StoryboardOutput
 
 FAKE_STORYBOARD = StoryboardOutput(
@@ -50,18 +45,3 @@ def test_generate_storyboard_calls_gemini_with_scene_script_and_json_schema(monk
     assert call_kwargs["config"].response_mime_type == "application/json"
     assert call_kwargs["config"].response_schema is StoryboardOutput
     assert "샷 사이즈" in call_kwargs["config"].system_instruction
-
-
-def test_shot_to_image_prompt_not_yet_implemented() -> None:
-    with pytest.raises(NotImplementedError):
-        shot_to_image_prompt(None)
-
-
-def test_generate_contact_sheet_image_not_yet_implemented() -> None:
-    with pytest.raises(NotImplementedError):
-        generate_contact_sheet_image("a prompt")
-
-
-def test_export_docx_not_yet_implemented() -> None:
-    with pytest.raises(NotImplementedError):
-        export_docx(None, None)

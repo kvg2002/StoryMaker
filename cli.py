@@ -34,7 +34,18 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command == "run":
-        print(run(args.logline).model_dump_json(indent=2))
+        result = run(args.logline)
+        print(f"산출물 폴더: {result.project_dir}")
+        print(f"스토리보드 워드: {result.docx_path}")
+        print(f"애니매틱 mp4: {result.video_path or '(렌더링 실패 — 로그 확인 필요)'}")
+        if result.image_failures:
+            print(f"이미지 생성 실패 {len(result.image_failures)}건:")
+            for failure in result.image_failures:
+                print(f"  - {failure}")
+        if result.validation_flags:
+            print(f"타임라인 검증 플래그 {len(result.validation_flags)}건:")
+            for flag in result.validation_flags:
+                print(f"  - {flag}")
     elif args.command == "scenario":
         print(generate_scenario(args.logline).scene_script)
     elif args.command == "storyboard":

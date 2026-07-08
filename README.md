@@ -28,8 +28,26 @@ uv run pytest
 
 ## 실행
 
+### CLI
+
 ```bash
-uv run python cli.py run "겁쟁이가 용을 잡아야 한다"
+uv run python cli.py scenario "겁쟁이가 용을 잡아야 한다"    # 1단계만
+uv run python cli.py storyboard "겁쟁이가 용을 잡아야 한다"  # 1~2단계
+uv run python cli.py run "겁쟁이가 용을 잡아야 한다"          # 전체 파이프라인
 ```
 
-애니매틱 렌더링에는 시스템에 `ffmpeg`가 설치되어 있어야 한다.
+`run`은 산출물을 `outputs/<로그라인 슬러그>/`에 저장한다: 콘티 이미지(`images/cut{n}.png`),
+타임라인 JSON, 스토리보드 워드(`storyboard.docx`), 애니매틱 mp4(`animatic.mp4`).
+
+애니매틱 렌더링에는 시스템에 `ffmpeg`가 설치되어 있어야 한다(`winget install Gyan.FFmpeg`).
+콘티 이미지 생성이 실패해도(예: API 할당량 소진) 나머지 단계는 계속 진행되며, 렌더링은
+실제 이미지 파일이 있을 때만 성공한다.
+
+### 웹 UI (Streamlit)
+
+```bash
+uv run streamlit run app.py
+```
+
+로컬에서 브라우저가 자동으로 열린다(기본 `http://localhost:8501`). 로그라인을 입력하고
+"생성 시작"을 누르면 시나리오·샷 리스트·콘티 이미지·docx 다운로드·애니매틱 mp4를 한 화면에서 확인할 수 있다.

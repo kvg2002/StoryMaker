@@ -88,3 +88,15 @@ StoryMaker/
   - 언어 판단 모델은 애초 `gemini-2.5-pro`로 정했으나, 실제 키로 스모크테스트한 결과 이 계정은 pro 모델 무료 할당량이 0(`RESOURCE_EXHAUSTED`, limit: 0)이라 **`gemini-2.5-flash`로 하향 조정**했다(2026-07-08, 시나리오 에이전트 실구현 시 확인). 콘티 이미지는 여전히 `gemini-2.5-flash-image`.
 - **범위에서 제외**: `agents/<stage>/prompts/training.md`(원본 기획서 방법론 레퍼런스)는 촬영 문법·편집 이론 등 API 공급자와 무관한 내용이 대부분이라 이번 전환에서 수정하지 않았다. 다만 각 문서의 "콘티 이미지 생성 파이프라인 (Claude + Gemini)" 절 등 특정 공급자를 못박은 부분은 실제 구현과 다를 수 있으니, 프롬프트를 다시 작성하는 시점에 참고용으로만 취급할 것.
 - **위 "아키텍처" 트리와 표는 스캐폴딩 당시 상태를 기록한 것으로 그대로 둔다.** 현재 실제 구조는 `shared/claude_client.py`가 없고 `shared/gemini_client.py` 단독이라는 점이 다르다.
+
+## 결정 변경: 전 기능 구현 + Streamlit UI (2026-07-08)
+
+3단계 뼈대(생성 로직)까지 완성한 뒤, 나머지 스텁(콘티 이미지 생성, docx 출력, 타임라인 검증, 실제 mp4 렌더링)을 모두 구현하고 웹 UI를 추가했다.
+
+- **`shot_to_image_prompt`는 Gemini 호출 없이 결정적 템플릿 함수로 구현**했다. 기획서 4.7절 템플릿이 필드 조합만으로 정해지는 기계적 변환이라 LLM이 불필요하고, 무료 티어 할당량 리스크도 줄어든다.
+- **콘티 이미지 생성(`gemini-2.5-flash-image`)은 이 계정에서 무료 할당량이 0**(`RESOURCE_EXHAUSTED`, limit: 0)으로 확인됐다. `generate_contact_sheets`는 샷별 생성 실패를 개별적으로 흡수하고 나머지 샷은 계속 진행하도록 설계했다 — 이미지 없이도 docx·타임라인·검증은 끝까지 동작해야 한다는 원칙.
+- **`export_docx`**: python-docx로 기획서 4.8절의 5컬럼(Cut/Video/Content/Audio/Time) 표를 실제로 생성. 팀 표기 관례(OTS→OSS, overhead→Top Angle 등) 반영. 강조 컷(Video+Content 칸 병합)은 이번 범위에서 생략 — 필요시 후속 작업.
+- **`validate_timeline`**: 학습 문서 PART 10 규칙 중 대사 컷 최소 길이 자동 상향, 자막 읽기 시간 부족 플래그, 동일 길이 3연속 플래그, 씬 내부 전환 강제 교정(cut)을 구현. 총 길이 검증은 `target_runtime_seconds`를 선택적으로 받아 있을 때만 체크. 실제 생성 데이터로 라이브 테스트한 결과 11건의 실제 문제를 정확히 잡아냄(자막 읽기 시간 부족 10건, 대사 길이 자동 상향 1건).
+- **ffmpeg를 `winget install Gyan.FFmpeg`로 설치**해 실제 mp4 렌더링 경로를 열었다. `agents/animatic/renderer/run_renderer.py`가 검증된 `animatic_renderer.py` 스크립트를 서브프로세스로 호출한다(스크립트 내용은 수정하지 않음 — 기획서 원칙 준수). 콘티 이미지가 없으면 렌더링은 실패하고 `PipelineResult.video_path`가 `None`이 된다 — 파이프라인 전체가 죽지 않고 나머지 산출물(docx, timeline.json)은 정상 반환.
+- **`pipeline/run_pipeline.py`가 `PipelineResult`(pydantic 모델)를 반환**하도록 변경 — 이전에는 `Timeline`만 반환했으나, 프로젝트 폴더 경로·docx 경로·비디오 경로·검증 플래그·이미지 실패 목록을 UI/CLI가 모두 참조해야 해서 확장했다.
+- **`app.py` (Streamlit 웹 UI)** 추가: `uv run streamlit run app.py`로 로컬 브라우저에서 실행. 로그라인 입력 → 생성 버튼 → 시나리오/샷별 이미지·설명/docx 다운로드/검증 플래그/mp4 순서로 표시. UI 자체는 이미 테스트된 파이프라인 함수를 호출만 하는 얇은 레이어라 별도 자동화 테스트 없이 실제 기동 확인(HTTP 200)으로 검증했다.

@@ -1,10 +1,7 @@
 from unittest.mock import MagicMock
 
-import pytest
-
 from agents.animatic.agent import generate_timeline
 from agents.animatic.schemas import Cut, Motion, Overlays, Timeline
-from agents.animatic.validators import validate_timeline
 from agents.storyboard.schemas import Shot
 
 FAKE_SHOTS = [
@@ -65,8 +62,3 @@ def test_generate_timeline_calls_gemini_with_shot_list_and_json_schema(monkeypat
     assert call_kwargs["config"].response_mime_type == "application/json"
     assert call_kwargs["config"].response_schema is Timeline
     assert "월터 머치" in call_kwargs["config"].system_instruction
-
-
-def test_validate_timeline_not_yet_implemented() -> None:
-    with pytest.raises(NotImplementedError):
-        validate_timeline(None)
