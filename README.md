@@ -13,8 +13,10 @@
 
 ## 기술 스택
 
-Gemini 단일 백엔드로 동작한다 — 언어·구조 판단(시나리오/샷 리스트/타임라인)은 `gemini-2.5-pro`,
+Gemini 단일 백엔드로 동작한다 — 언어·구조 판단(시나리오/샷 리스트/타임라인)은 `gemini-2.5-flash`,
 콘티 이미지 생성은 `gemini-2.5-flash-image`. 두 역할 모두 `shared/gemini_client.py`의 클라이언트를 사용한다.
+(`gemini-2.5-pro`는 무료 티어 할당량이 0인 계정이 있어 기본값을 flash로 잡았다. pro를 쓰려면 각 `agent.py`의
+`MODEL` 상수를 바꾸면 된다.)
 
 ## 개발 환경
 

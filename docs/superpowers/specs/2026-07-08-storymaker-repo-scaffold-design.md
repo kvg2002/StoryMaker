@@ -79,11 +79,12 @@ StoryMaker/
 
 초기 스캐폴딩(Task 1~8)은 기획서 원안대로 "텍스트=Claude, 이미지=Gemini" 이원 구조로 구현했으나, 이후 **Gemini API 키만 사용하는 단일 백엔드로 전환**하기로 결정했다.
 
-- **근거**: Gemini는 이미지 생성뿐 아니라 텍스트 생성(`gemini-2.5-pro`)도 지원하므로, 별도 Claude API 키 없이 하나의 공급자로 파이프라인 전체를 운용할 수 있다. API 키 하나·SDK 하나로 구조가 단순해진다.
+- **근거**: Gemini는 이미지 생성뿐 아니라 텍스트 생성도 지원하므로, 별도 Claude API 키 없이 하나의 공급자로 파이프라인 전체를 운용할 수 있다. API 키 하나·SDK 하나로 구조가 단순해진다.
 - **변경 내용**:
   - `shared/claude_client.py` 및 관련 테스트 삭제. `shared/gemini_client.py`가 텍스트 판단(시나리오/샷 리스트/타임라인 JSON)과 콘티 이미지 생성을 모두 담당.
   - `pyproject.toml`에서 `anthropic` 의존성 제거.
   - `.env.example`에서 `ANTHROPIC_API_KEY` 제거, `GEMINI_API_KEY`만 유지.
-  - 각 에이전트(`agents/scenario/agent.py`, `agents/storyboard/agent.py`, `agents/storyboard/image_prompt.py`, `agents/animatic/agent.py`)의 docstring에서 "Claude 담당" 표기를 Gemini로 수정하고, 사용할 모델(`gemini-2.5-pro`, 이미지는 `gemini-2.5-flash-image`)을 명시.
+  - 각 에이전트(`agents/scenario/agent.py`, `agents/storyboard/agent.py`, `agents/storyboard/image_prompt.py`, `agents/animatic/agent.py`)의 docstring에서 "Claude 담당" 표기를 Gemini로 수정.
+  - 언어 판단 모델은 애초 `gemini-2.5-pro`로 정했으나, 실제 키로 스모크테스트한 결과 이 계정은 pro 모델 무료 할당량이 0(`RESOURCE_EXHAUSTED`, limit: 0)이라 **`gemini-2.5-flash`로 하향 조정**했다(2026-07-08, 시나리오 에이전트 실구현 시 확인). 콘티 이미지는 여전히 `gemini-2.5-flash-image`.
 - **범위에서 제외**: `agents/<stage>/prompts/training.md`(원본 기획서 방법론 레퍼런스)는 촬영 문법·편집 이론 등 API 공급자와 무관한 내용이 대부분이라 이번 전환에서 수정하지 않았다. 다만 각 문서의 "콘티 이미지 생성 파이프라인 (Claude + Gemini)" 절 등 특정 공급자를 못박은 부분은 실제 구현과 다를 수 있으니, 프롬프트를 다시 작성하는 시점에 참고용으로만 취급할 것.
 - **위 "아키텍처" 트리와 표는 스캐폴딩 당시 상태를 기록한 것으로 그대로 둔다.** 현재 실제 구조는 `shared/claude_client.py`가 없고 `shared/gemini_client.py` 단독이라는 점이 다르다.

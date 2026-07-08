@@ -1,7 +1,7 @@
 """3단계 애니매틱 생성 에이전트: 샷 리스트 -> 타임라인 JSON.
 
 방법론 레퍼런스: agents/animatic/prompts/training.md
-언어 모델: Gemini (gemini-2.5-pro)
+언어 모델: Gemini (gemini-2.5-flash)
 렌더링은 이 에이전트가 아니라 agents/animatic/renderer/animatic_renderer.py가 담당한다.
 """
 from agents.animatic.schemas import Timeline
