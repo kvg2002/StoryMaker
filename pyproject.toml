@@ -1,0 +1,27 @@
+[project]
+name = "storymaker"
+version = "0.1.0"
+description = "AI 기반 영상 프리프로덕션 자동화 파이프라인 (시나리오-스토리보드-애니매틱)"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.40.0",
+    "google-genai>=0.3.0",
+    "pydantic>=2.9.0",
+    "python-docx>=1.1.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.scripts]
+storymaker = "cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
