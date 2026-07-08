@@ -1,7 +1,11 @@
 """StoryMaker CLI 진입점: storymaker run <logline>"""
 import argparse
 
+from dotenv import load_dotenv
+
 from pipeline.run_pipeline import run
+
+load_dotenv()
 
 
 def main() -> None:
