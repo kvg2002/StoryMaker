@@ -1,7 +1,8 @@
 # StoryMaker 진행 상황 (2026-07-09 갱신)
 
 최신 커밋: `837206c` (GitHub `kvg2002/StoryMaker` main 브랜치에 반영 완료) + 이후 시나리오 모델을
-`gemini-2.5-pro`로 상향한 로컬 변경(아직 커밋 전일 수 있음 — `git log` 확인).
+`gemini-2.5-pro` → `gemini-3.1-pro-preview`로 상향한 로컬 변경(아직 커밋 전일 수 있음 — `git log` 확인).
+같은 로그라인으로 두 모델을 비교해본 결과 3.1-pro-preview가 완결성이 더 높아 최종 선택함.
 
 ## 한 줄 요약
 
@@ -26,7 +27,7 @@ uv run python cli.py run "로그라인"   # CLI로 한 번에 실행
 ## 완성된 것
 
 ### 백엔드 (agents/)
-- **`agents/scenario/agent.py`** — `generate_scenario(logline)`: Gemini(`gemini-2.5-pro`)로 Save the Cat 구조 기반 씬 대본 생성. 학습 문서(`prompts/training.md`)를 system_instruction으로 주입. (스토리보드·애니매틱은 `gemini-2.5-flash` 유지 — 근거는 설계 문서의 2026-07-09 결정 참고.)
+- **`agents/scenario/agent.py`** — `generate_scenario(logline)`: Gemini(`gemini-3.1-pro-preview`)로 Save the Cat 구조 기반 씬 대본 생성. 학습 문서(`prompts/training.md`)를 system_instruction으로 주입. (스토리보드·애니매틱은 `gemini-2.5-flash` 유지 — 근거는 설계 문서의 2026-07-09 결정 참고.)
 - **`agents/storyboard/agent.py`** — `generate_storyboard(scene_script)`: Gemini 구조화 출력(`response_schema=StoryboardOutput`)으로 샷 리스트 JSON 생성.
 - **`agents/storyboard/image_prompt.py`** — `shot_to_image_prompt(shot)`: **LLM 호출 없이** 결정적 템플릿으로 이미지 프롬프트 생성(기획서 4.7절 공식이 기계적 변환이라 API 불필요).
 - **`agents/storyboard/image_gen.py`** — `generate_contact_sheet_image(prompt)`: 실제 `gemini-2.5-flash-image` 호출. `generate_contact_sheets(shots, output_dir)`: 샷별로 반복 호출해 `cut{n}.png` 저장, 개별 실패는 흡수하고 계속 진행.
