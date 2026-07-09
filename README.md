@@ -13,10 +13,17 @@
 
 ## 기술 스택
 
-Gemini 단일 백엔드로 동작한다 — 언어·구조 판단(시나리오/샷 리스트/타임라인)은 `gemini-2.5-flash`,
-콘티 이미지 생성은 `gemini-2.5-flash-image`. 두 역할 모두 `shared/gemini_client.py`의 클라이언트를 사용한다.
-(`gemini-2.5-pro`는 무료 티어 할당량이 0인 계정이 있어 기본값을 flash로 잡았다. pro를 쓰려면 각 `agent.py`의
-`MODEL` 상수를 바꾸면 된다.)
+Gemini 단일 백엔드로 동작한다. `shared/gemini_client.py`의 클라이언트를 모든 단계가 공유하고,
+단계별로 모델만 다르게 쓴다:
+
+| 단계 | 모델 | 근거 |
+|---|---|---|
+| 시나리오 (`agents/scenario/agent.py`) | `gemini-2.5-pro` | 창작 판단이 가장 중요하고 파이프라인당 1회만 호출돼 상위 모델 사용 |
+| 스토리보드 (`agents/storyboard/agent.py`) | `gemini-2.5-flash` | 샷 문법 규칙 적용 위주 구조화 작업이라 flash로 충분 |
+| 애니매틱 (`agents/animatic/agent.py`) | `gemini-2.5-flash` | `validators.py`가 수치를 사후 검증·자동 보정해 안전망 역할을 함 |
+| 콘티 이미지 (`agents/storyboard/image_gen.py`) | `gemini-2.5-flash-image` | 콘티는 완성 일러스트가 아닌 구도 전달용 스케치가 목적이고, 샷 개수만큼 반복 호출돼 비용에 민감 |
+
+모델을 바꾸려면 각 `agent.py`(또는 `image_gen.py`)의 `MODEL` 상수를 수정하면 된다.
 
 ## 개발 환경
 

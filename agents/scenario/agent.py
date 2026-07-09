@@ -1,7 +1,7 @@
 """1단계 시나리오 생성 에이전트: 로그라인 -> 비트 시트 -> 씬 리스트 -> 씬 대본.
 
 방법론 레퍼런스: agents/scenario/prompts/training.md
-언어 모델: Gemini (gemini-2.5-flash — 이 프로젝트의 무료 티어 할당량 기준)
+언어 모델: Gemini (gemini-2.5-pro — 창작 판단이 중요하고 호출 빈도가 낮아 상위 모델 사용)
 """
 from pathlib import Path
 
@@ -10,7 +10,7 @@ from google.genai import types
 from agents.scenario.schemas import ScenarioOutput
 from shared.gemini_client import get_gemini_client
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-2.5-pro"
 TRAINING_DOC_PATH = Path(__file__).parent / "prompts" / "training.md"
 
 

@@ -1,12 +1,13 @@
-# StoryMaker 진행 상황 (2026-07-08 기준)
+# StoryMaker 진행 상황 (2026-07-09 갱신)
 
-최신 커밋: `837206c` (GitHub `kvg2002/StoryMaker` main 브랜치에 반영 완료)
+최신 커밋: `837206c` (GitHub `kvg2002/StoryMaker` main 브랜치에 반영 완료) + 이후 시나리오 모델을
+`gemini-2.5-pro`로 상향한 로컬 변경(아직 커밋 전일 수 있음 — `git log` 확인).
 
 ## 한 줄 요약
 
 로그라인 → 시나리오 → 스토리보드 → 애니매틱 3단계 파이프라인이 전부 동작하고,
 Streamlit 웹 UI에서 **단계마다 사람이 검토·수정한 뒤 직접 진행**하는 위자드 형태로 완성됨.
-55/55 테스트 통과. 유일한 미해결 이슈는 이 Gemini 계정의 **이미지 생성 API 무료 할당량이 0**이라는 것(코드는 정상 — 계정 결제 문제).
+55/55 테스트 통과. **2026-07-09: Gemini 계정에 결제 등록 완료, 이미지 생성·`gemini-2.5-pro` 할당량 문제 해결됨.**
 
 ## 지금 당장 다시 시작하는 법
 
@@ -25,7 +26,7 @@ uv run python cli.py run "로그라인"   # CLI로 한 번에 실행
 ## 완성된 것
 
 ### 백엔드 (agents/)
-- **`agents/scenario/agent.py`** — `generate_scenario(logline)`: Gemini(`gemini-2.5-flash`)로 Save the Cat 구조 기반 씬 대본 생성. 학습 문서(`prompts/training.md`)를 system_instruction으로 주입.
+- **`agents/scenario/agent.py`** — `generate_scenario(logline)`: Gemini(`gemini-2.5-pro`)로 Save the Cat 구조 기반 씬 대본 생성. 학습 문서(`prompts/training.md`)를 system_instruction으로 주입. (스토리보드·애니매틱은 `gemini-2.5-flash` 유지 — 근거는 설계 문서의 2026-07-09 결정 참고.)
 - **`agents/storyboard/agent.py`** — `generate_storyboard(scene_script)`: Gemini 구조화 출력(`response_schema=StoryboardOutput`)으로 샷 리스트 JSON 생성.
 - **`agents/storyboard/image_prompt.py`** — `shot_to_image_prompt(shot)`: **LLM 호출 없이** 결정적 템플릿으로 이미지 프롬프트 생성(기획서 4.7절 공식이 기계적 변환이라 API 불필요).
 - **`agents/storyboard/image_gen.py`** — `generate_contact_sheet_image(prompt)`: 실제 `gemini-2.5-flash-image` 호출. `generate_contact_sheets(shots, output_dir)`: 샷별로 반복 호출해 `cut{n}.png` 저장, 개별 실패는 흡수하고 계속 진행.
@@ -60,16 +61,15 @@ uv run python cli.py run "로그라인"   # CLI로 한 번에 실행
 
 ## 알려진 제약 / 미해결 이슈
 
-1. **이미지 생성 API 할당량 0** (`gemini-2.5-flash-image` → `RESOURCE_EXHAUSTED`, limit: 0). `gemini-2.5-pro`도 동일 문제라 텍스트 판단은 `gemini-2.5-flash` 사용 중. **해결하려면 Google AI Studio/Cloud Console에서 이 키가 속한 프로젝트에 결제 계정을 등록해야 함.** 코드 자체는 정상 동작 확인됨(mock 테스트 + 실제 호출 시도 모두 올바른 요청을 보냄).
-2. 결제 등록 전까지는 콘티 이미지·최종 mp4가 안 나옴 — docx/시나리오/샷리스트/타임라인/검증은 정상 동작.
-3. docx의 "강조 컷"(이미지가 칸을 넘어가는 대형 배치) 기능 미구현 — 현재는 샷 1개=행 1개만.
-4. UI에 "1단계로 돌아가기"(뒤로가기) 버튼 없음 — "처음부터 다시"만 있음.
-5. 목표 러닝타임(`target_runtime_seconds`)을 UI에서 입력받는 기능 없음 — `validate_timeline`은 지원하지만 UI가 안 넘겨줌.
-6. Gemini 무료 티어 자체가 가끔 503(서버 과부하)을 반환함 — 재시도 로직 없음, 실패하면 그냥 에러 표시.
+1. ~~이미지 생성 API 할당량 0~~ — **2026-07-09 결제 등록으로 해결됨.** `gemini-2.5-flash-image` 실제 이미지 생성 성공, `gemini-2.5-pro`도 정상 호출 확인.
+2. docx의 "강조 컷"(이미지가 칸을 넘어가는 대형 배치) 기능 미구현 — 현재는 샷 1개=행 1개만.
+3. UI에 "1단계로 돌아가기"(뒤로가기) 버튼 없음 — "처음부터 다시"만 있음.
+4. 목표 러닝타임(`target_runtime_seconds`)을 UI에서 입력받는 기능 없음 — `validate_timeline`은 지원하지만 UI가 안 넘겨줌.
+5. Gemini 무료 티어 자체가 가끔 503(서버 과부하)을 반환함 — 재시도 로직 없음, 실패하면 그냥 에러 표시.
 
 ## 다음에 이어서 할 만한 것 (우선순위 순 추천)
 
-1. **결제 등록 후 이미지·영상 실제 생성 확인** — 가장 먼저 해볼 만함, 코드 변경 불필요.
+1. 결제 등록도 됐으니 **실제 이미지·mp4까지 나오는 전체 파이프라인 한 번 정식으로 돌려보기**.
 2. UI에 "1단계로 돌아가기" 버튼 추가 (뒤로 가기 네비게이션).
 3. UI에 목표 러닝타임 입력 필드 추가 → `validate_timeline(timeline, target_runtime_seconds=...)`에 연결.
 4. Gemini 호출에 재시도/백오프 로직 추가(503 대응).

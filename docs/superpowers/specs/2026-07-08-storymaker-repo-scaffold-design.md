@@ -100,3 +100,12 @@ StoryMaker/
 - **ffmpeg를 `winget install Gyan.FFmpeg`로 설치**해 실제 mp4 렌더링 경로를 열었다. `agents/animatic/renderer/run_renderer.py`가 검증된 `animatic_renderer.py` 스크립트를 서브프로세스로 호출한다(스크립트 내용은 수정하지 않음 — 기획서 원칙 준수). 콘티 이미지가 없으면 렌더링은 실패하고 `PipelineResult.video_path`가 `None`이 된다 — 파이프라인 전체가 죽지 않고 나머지 산출물(docx, timeline.json)은 정상 반환.
 - **`pipeline/run_pipeline.py`가 `PipelineResult`(pydantic 모델)를 반환**하도록 변경 — 이전에는 `Timeline`만 반환했으나, 프로젝트 폴더 경로·docx 경로·비디오 경로·검증 플래그·이미지 실패 목록을 UI/CLI가 모두 참조해야 해서 확장했다.
 - **`app.py` (Streamlit 웹 UI)** 추가: `uv run streamlit run app.py`로 로컬 브라우저에서 실행. 로그라인 입력 → 생성 버튼 → 시나리오/샷별 이미지·설명/docx 다운로드/검증 플래그/mp4 순서로 표시. UI 자체는 이미 테스트된 파이프라인 함수를 호출만 하는 얇은 레이어라 별도 자동화 테스트 없이 실제 기동 확인(HTTP 200)으로 검증했다.
+
+## 결정 변경: 결제 등록 완료 + 단계별 모델 재조정 (2026-07-09)
+
+Gemini 계정에 결제를 등록해 `gemini-2.5-pro`, `gemini-2.5-flash-image` 모두 무료 티어 할당량 0 제약이 풀렸다(실제 이미지 생성 성공으로 확인). 이에 따라 단계별로 모델을 재조정했다.
+
+- **시나리오만 `gemini-2.5-pro`로 상향**했다. 근거: 창작 판단이 가장 중요한 단계인데 사람이 직접 검증하는 것 외에 사후 보정 코드가 없고(2·3단계는 `validators.py`가 있음), 파이프라인당 1회만 호출돼 상위 모델 비용 부담이 작다.
+- **스토리보드·애니매틱은 `gemini-2.5-flash` 유지**. 둘 다 규칙 적용 위주의 구조화 출력 작업이고, 애니매틱은 검증 코드가 안전망 역할을 하므로 상위 모델이 굳이 필요하지 않다.
+- **콘티 이미지는 `gemini-2.5-flash-image`("나노바나나") 유지**. 콘티는 완성 일러스트가 아닌 구도 전달용 스케치가 목적(기획서 원칙)이고, 샷 개수만큼 반복 호출되는 유일한 단계라 비용에 가장 민감하다. `gemini-3-pro-image`("나노바나나 프로")나 `imagen-4.0` 같은 상위 이미지 모델로 바꿀 수도 있지만 현재는 불필요하다고 판단.
+- 이 변경은 `agents/scenario/agent.py`의 `MODEL` 상수만 수정하는 최소 변경이었고, 사용자 요청에 따라 실제 API를 호출하는 라이브 테스트는 생략했다(기존 mock 단위 테스트로만 확인).

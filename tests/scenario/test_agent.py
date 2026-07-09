@@ -26,7 +26,7 @@ def test_generate_scenario_calls_gemini_with_logline_and_training_doc(monkeypatc
 
     fake_client.models.generate_content.assert_called_once()
     call_kwargs = fake_client.models.generate_content.call_args.kwargs
-    assert call_kwargs["model"] == "gemini-2.5-flash"
+    assert call_kwargs["model"] == "gemini-2.5-pro"
     assert call_kwargs["contents"] == "겁쟁이가 용을 잡아야 한다"
     system_instruction = call_kwargs["config"].system_instruction
     assert "Save the Cat" in system_instruction
