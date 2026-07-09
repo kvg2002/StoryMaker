@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StoryMaker — AI 스토리 제작 스튜디오</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="bg-decor" aria-hidden="true">
+  <span class="blob blob-1"></span>
+  <span class="blob blob-2"></span>
+  <span class="blob blob-3"></span>
+</div>
+
+<div class="app">
+
+  <!-- Left Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <span class="logo-icon">🎬</span>
+      <span class="logo-text">StoryMaker</span>
+    </div>
+
+    <div class="glass-card project-card">
+      <p class="card-label">현재 프로젝트</p>
+      <h3 class="project-name">겁쟁이 용사 이야기</h3>
+      <p class="project-desc">로그라인 → 시나리오 → 스토리보드 → 애니매틱</p>
+    </div>
+
+    <div class="steps">
+      <div class="step-card done">
+        <div class="step-icon">✓</div>
+        <div class="step-info">
+          <p class="step-title">1단계. 시나리오 생성</p>
+          <p class="step-status">완료</p>
+        </div>
+      </div>
+
+      <div class="step-card active">
+        <div class="step-icon">2</div>
+        <div class="step-info">
+          <p class="step-title">2단계. 스토리보드 생성</p>
+          <p class="step-status">진행 중</p>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-icon">3</div>
+        <div class="step-info">
+          <p class="step-title">3단계. 애니매틱 생성</p>
+          <p class="step-status">대기 중</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-labels">
+        <span>전체 진행률</span>
+        <span class="progress-percent">45%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width: 45%;"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main">
+
+    <section class="hero">
+      <span class="hero-badge">✨ AI 스토리 파이프라인</span>
+      <h1>로그라인 한 줄로 완성하는<br>AI 스토리 제작 파이프라인</h1>
+      <p>시나리오, 스토리보드, 애니매틱까지 — 3단계 AI 에이전트가 이야기를 함께 만듭니다.</p>
+    </section>
+
+    <section class="pipeline-cards">
+      <div class="pipeline-card">
+        <div class="pipeline-icon">📝</div>
+        <h3>시나리오 생성</h3>
+        <p>로그라인을 비트 시트와 씬 대본으로 확장합니다.</p>
+      </div>
+      <div class="pipeline-card">
+        <div class="pipeline-icon">🎞️</div>
+        <h3>스토리보드 생성</h3>
+        <p>씬 대본을 샷 리스트와 콘티 이미지로 시각화합니다.</p>
+      </div>
+      <div class="pipeline-card">
+        <div class="pipeline-icon">🎬</div>
+        <h3>애니매틱 생성</h3>
+        <p>샷 리스트를 타임라인 영상으로 완성합니다.</p>
+      </div>
+    </section>
+
+    <section class="glass-card new-project-card">
+      <div class="new-project-head">
+        <h2>새 프로젝트 시작</h2>
+        <p class="new-project-sub">아래 항목을 채워 주세요 — 프론트엔드 프로토타입 화면이며 실제로 전송되지 않습니다.</p>
+      </div>
+
+      <!-- 1. Project Information -->
+      <div class="section-block">
+        <div class="section-header">
+          <span class="section-eyebrow">1단계</span>
+          <h3>프로젝트 정보</h3>
+        </div>
+
+        <div class="project-info-grid">
+          <div class="field">
+            <label for="projectTitle">프로젝트 제목</label>
+            <input type="text" id="projectTitle" placeholder="예) 겁쟁이 용사 이야기" />
+          </div>
+
+          <div class="field">
+            <label for="movieLength">영화 길이</label>
+            <div class="select-wrap">
+              <select id="movieLength">
+                <option value="" disabled selected>길이를 선택하세요</option>
+                <option value="3분 예고편">3분 예고편</option>
+                <option value="10분내외 단편">10분내외 단편</option>
+                <option value="40분 내외 중편">40분 내외 중편</option>
+                <option value="1시간 이상 장편">1시간 이상 장편</option>
+              </select>
+              <span class="select-arrow">▾</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Genre -->
+      <div class="section-block">
+        <div class="section-header">
+          <span class="section-eyebrow">2단계</span>
+          <h3>장르 선택 <span class="section-hint">— Save the Cat 10가지 스토리 장르</span></h3>
+        </div>
+
+        <div class="genre-grid" id="genreGrid"></div>
+
+        <div class="genre-info-panel" id="genreInfoPanel">
+          <div class="genre-info-header">
+            <span class="genre-info-eyebrow">장르 설명</span>
+            <h4 id="genreInfoName">장르를 선택해 주세요</h4>
+          </div>
+
+          <div class="genre-info-empty" id="genreInfoEmpty">
+            <p>위 카드에서 장르를 클릭하면 설명, 3가지 필수 요소, 흔한 실수를 여기에서 확인할 수 있습니다.</p>
+          </div>
+
+          <div class="genre-info-body" id="genreInfoBody" hidden>
+            <div class="genre-info-main">
+              <div class="genre-info-row">
+                <p class="genre-info-label">설명</p>
+                <p class="genre-info-desc" id="genreInfoDesc"></p>
+              </div>
+
+              <div class="genre-info-row">
+                <p class="genre-info-label">3가지 필수 요소</p>
+                <ul class="genre-info-list" id="genreInfoElements"></ul>
+              </div>
+            </div>
+
+            <div class="genre-info-mistake-callout">
+              <p class="genre-info-label">⚠ 흔한 실수</p>
+              <p class="genre-info-text" id="genreInfoMistake"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Target Audience -->
+      <div class="section-block">
+        <div class="section-header">
+          <span class="section-eyebrow">3단계</span>
+          <h3>타겟 관객</h3>
+        </div>
+        <div class="chip-group" id="audienceChips"></div>
+        <p class="selection-readout" id="audienceReadout">선택된 관객: 없음</p>
+      </div>
+
+      <!-- 4. Story Tone -->
+      <div class="section-block">
+        <div class="section-header">
+          <span class="section-eyebrow">4단계</span>
+          <h3>이야기 톤</h3>
+        </div>
+        <div class="chip-group" id="toneChips"></div>
+        <p class="selection-readout" id="toneReadout">선택된 톤: 없음</p>
+      </div>
+
+      <!-- 5. Logline -->
+      <div class="section-block">
+        <div class="section-header">
+          <span class="section-eyebrow">5단계</span>
+          <h3>로그라인</h3>
+        </div>
+
+        <textarea class="logline-input" id="loglineInput" maxlength="500"
+          placeholder="로그라인을 입력하세요. 예) 겁쟁이가 마을을 지키기 위해 용을 잡아야 한다."></textarea>
+
+        <div class="logline-footer">
+          <button class="example-btn" id="exampleBtn" type="button">💡 예시 로그라인</button>
+          <p class="char-counter"><span id="charCount">0</span>/500자</p>
+        </div>
+      </div>
+
+      <button class="generate-btn" id="generateBtn">✨ 생성하기</button>
+    </section>
+
+    <!-- ===================================================== -->
+    <!-- STEP 2 — 스토리보드 생성 -->
+    <!-- ===================================================== -->
+    <section class="glass-card new-project-card" id="step2Section">
+      <div class="new-project-head">
+        <span class="section-eyebrow">2단계</span>
+        <h2>스토리보드 생성</h2>
+        <p class="new-project-sub">샷 구성과 캐릭터를 설정하고 스토리보드를 미리 확인하세요.</p>
+      </div>
+
+      <!-- Storyboard Settings -->
+      <div class="section-block">
+        <div class="section-header">
+          <h3>스토리보드 설정</h3>
+        </div>
+
+        <div class="project-info-grid">
+          <div class="field">
+            <label>샷 개수</label>
+            <div class="chip-group settings-chip-group" data-select="single">
+              <button class="chip" type="button">6컷</button>
+              <button class="chip" type="button">8컷</button>
+              <button class="chip" type="button">12컷</button>
+              <button class="chip" type="button">16컷</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>화면 비율</label>
+            <div class="chip-group settings-chip-group" data-select="single">
+              <button class="chip" type="button">16:9</button>
+              <button class="chip" type="button">9:16</button>
+              <button class="chip" type="button">1:1</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>카메라 스타일</label>
+            <div class="chip-group settings-chip-group" data-select="single">
+              <button class="chip" type="button">시네마틱</button>
+              <button class="chip" type="button">다큐멘터리</button>
+              <button class="chip" type="button">애니메이션</button>
+              <button class="chip" type="button">액션</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>색감</label>
+            <div class="chip-group settings-chip-group" data-select="single">
+              <button class="chip" type="button">따뜻한</button>
+              <button class="chip" type="button">차가운</button>
+              <button class="chip" type="button">어두운</button>
+              <button class="chip" type="button">밝은</button>
+              <button class="chip" type="button">빈티지</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Character Preview -->
+      <div class="section-block">
+        <div class="section-header">
+          <h3>캐릭터 프리뷰</h3>
+        </div>
+
+        <div class="character-grid">
+          <div class="character-card">
+            <div class="character-avatar">🧑</div>
+            <p class="character-name">이안</p>
+            <p class="character-meta">17세</p>
+            <p class="character-personality">겁이 많지만 마음이 따뜻한 마을 소년</p>
+          </div>
+          <div class="character-card">
+            <div class="character-avatar">🧕</div>
+            <p class="character-name">소라</p>
+            <p class="character-meta">16세</p>
+            <p class="character-personality">당차고 영리한 이안의 어릴 적 친구</p>
+          </div>
+          <div class="character-card">
+            <div class="character-avatar">🐉</div>
+            <p class="character-name">칼릭스</p>
+            <p class="character-meta">나이 불명</p>
+            <p class="character-personality">오래되고 냉소적인 마을 뒷산의 용</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Storyboard Preview -->
+      <div class="section-block">
+        <div class="section-header">
+          <h3>스토리보드 프리뷰</h3>
+        </div>
+
+        <div class="storyboard-grid">
+          <div class="storyboard-card">
+            <div class="storyboard-thumb"><span class="storyboard-scene-badge">씬 1</span>🖼️</div>
+            <div class="storyboard-body"><p class="storyboard-desc">와이드 샷 — 이안이 마을 입구에 서서 뒷산을 바라본다.</p></div>
+          </div>
+          <div class="storyboard-card">
+            <div class="storyboard-thumb"><span class="storyboard-scene-badge">씬 2</span>🖼️</div>
+            <div class="storyboard-body"><p class="storyboard-desc">클로즈업 — 이안의 떨리는 손이 낡은 검을 움켜쥔다.</p></div>
+          </div>
+          <div class="storyboard-card">
+            <div class="storyboard-thumb"><span class="storyboard-scene-badge">씬 3</span>🖼️</div>
+            <div class="storyboard-body"><p class="storyboard-desc">미디엄 샷 — 소라가 이안에게 지도를 건네며 응원한다.</p></div>
+          </div>
+          <div class="storyboard-card">
+            <div class="storyboard-thumb"><span class="storyboard-scene-badge">씬 4</span>🖼️</div>
+            <div class="storyboard-body"><p class="storyboard-desc">항공 샷 — 마을을 떠나 산길을 오르는 이안의 뒷모습.</p></div>
+          </div>
+          <div class="storyboard-card">
+            <div class="storyboard-thumb"><span class="storyboard-scene-badge">씬 5</span>🖼️</div>
+            <div class="storyboard-body"><p class="storyboard-desc">로우 앵글 — 동굴 앞에서 칼릭스의 그림자가 드리운다.</p></div>
+          </div>
+          <div class="storyboard-card">
+            <div class="storyboard-thumb"><span class="storyboard-scene-badge">씬 6</span>🖼️</div>
+            <div class="storyboard-body"><p class="storyboard-desc">투 샷 — 이안과 칼릭스가 서로를 마주보고 대치한다.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="generate-btn" id="storyboardGenerateBtn">스토리보드 생성</button>
+    </section>
+
+    <!-- ===================================================== -->
+    <!-- STEP 3 — 애니매틱 생성 -->
+    <!-- ===================================================== -->
+    <section class="glass-card new-project-card" id="step3Section">
+      <div class="new-project-head">
+        <span class="section-eyebrow">3단계</span>
+        <h2>애니매틱 생성</h2>
+        <p class="new-project-sub">타임라인과 비디오 미리보기를 확인하고 애니매틱을 생성하세요.</p>
+      </div>
+
+      <!-- Timeline -->
+      <div class="section-block">
+        <div class="section-header">
+          <h3>타임라인</h3>
+        </div>
+
+        <div class="timeline">
+          <div class="timeline-item">
+            <span class="timeline-time">00:00</span>
+            <span class="timeline-dot"></span>
+            <span class="timeline-scene">씬 1</span>
+          </div>
+          <div class="timeline-item">
+            <span class="timeline-time">00:08</span>
+            <span class="timeline-dot"></span>
+            <span class="timeline-scene">씬 2</span>
+          </div>
+          <div class="timeline-item">
+            <span class="timeline-time">00:16</span>
+            <span class="timeline-dot"></span>
+            <span class="timeline-scene">씬 3</span>
+          </div>
+          <div class="timeline-item">
+            <span class="timeline-time">00:24</span>
+            <span class="timeline-dot"></span>
+            <span class="timeline-scene">씬 4</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Video Preview -->
+      <div class="section-block">
+        <div class="section-header">
+          <h3>비디오 미리보기</h3>
+        </div>
+
+        <div class="video-preview">
+          <span class="video-preview-icon">▶</span>
+          <span>비디오 미리보기</span>
+        </div>
+      </div>
+
+      <button class="generate-btn" id="animaticGenerateBtn">애니매틱 생성</button>
+    </section>
+
+    <section class="info-cards">
+      <div class="info-card">
+        <div class="info-icon">⚡</div>
+        <h4>AI 기반 자동화</h4>
+        <p>로그라인 한 줄이면 전체 파이프라인이 자동으로 진행됩니다.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-icon">🕒</div>
+        <h4>빠른 제작 속도</h4>
+        <p>사람이 직접 작업하던 기획 과정을 몇 분 안에 단축합니다.</p>
+      </div>
+      <div class="info-card">
+        <div class="info-icon">🏆</div>
+        <h4>전문가 수준 퀄리티</h4>
+        <p>단계마다 직접 검토하고 수정하며 완성도를 높일 수 있습니다.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
