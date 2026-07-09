@@ -38,7 +38,7 @@ MOVEMENT_LABELS = {
 }
 
 
-def _shot_notation(shot: Shot) -> str:
+def shot_notation(shot: Shot) -> str:
     """팀 고유 표기 관례로 변환한다(기획서 4.8-3절): eye-level/static은 생략."""
     parts = [shot.size.upper()]
     angle_label = ANGLE_LABELS.get(shot.angle.lower())
@@ -83,7 +83,7 @@ def export_docx(
             run.add_picture(str(image_path), width=Inches(IMAGE_WIDTH_INCHES))
 
         content_cell = row_cells[2]
-        content_cell.paragraphs[0].add_run(_shot_notation(shot))
+        content_cell.paragraphs[0].add_run(shot_notation(shot))
         content_cell.add_paragraph(shot.description)
 
         audio_parts = [p for p in (shot.dialogue, shot.audio) if p]

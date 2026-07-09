@@ -1,7 +1,12 @@
 from agents.animatic.schemas import Cut, Motion, Overlays, Timeline
 from agents.scenario.schemas import ScenarioOutput
 from agents.storyboard.schemas import Shot, StoryboardOutput
-from pipeline.run_pipeline import PipelineResult, run, run_from_storyboard
+from pipeline.run_pipeline import (
+    PipelineResult,
+    finalize_from_storyboard,
+    run,
+    run_from_storyboard,
+)
 
 FAKE_SCENARIO = ScenarioOutput(scene_script="INT. 낡은 극장 - 밤\n\n지우가 대본을 꺼낸다.")
 FAKE_STORYBOARD = StoryboardOutput(
@@ -139,3 +144,31 @@ def test_run_from_storyboard_does_not_regenerate_scenario_or_storyboard(tmp_path
     assert result.storyboard == edited_storyboard
     assert result.project_dir == tmp_path
     assert result.docx_path == tmp_path / "storyboard.docx"
+
+
+def test_finalize_from_storyboard_does_not_regenerate_images(tmp_path, monkeypatch) -> None:
+    _patch_all_stages(monkeypatch)
+    monkeypatch.setattr(
+        "pipeline.run_pipeline.generate_contact_sheets",
+        lambda shots, output_dir: (_ for _ in ()).throw(AssertionError("should not regenerate images")),
+    )
+
+    result = finalize_from_storyboard(
+        FAKE_SCENARIO, FAKE_STORYBOARD, tmp_path, image_failures=["이미 기록된 실패"]
+    )
+
+    assert result.image_failures == ["이미 기록된 실패"]
+    assert result.timeline == FAKE_TIMELINE
+    assert result.docx_path == tmp_path / "storyboard.docx"
+
+
+def test_finalize_from_storyboard_defaults_image_failures_to_empty_list(tmp_path, monkeypatch) -> None:
+    _patch_all_stages(monkeypatch)
+    monkeypatch.setattr(
+        "pipeline.run_pipeline.generate_contact_sheets",
+        lambda shots, output_dir: (_ for _ in ()).throw(AssertionError("should not regenerate images")),
+    )
+
+    result = finalize_from_storyboard(FAKE_SCENARIO, FAKE_STORYBOARD, tmp_path)
+
+    assert result.image_failures == []

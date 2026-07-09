@@ -25,24 +25,24 @@
 
     <div class="glass-card project-card">
       <p class="card-label">현재 프로젝트</p>
-      <h3 class="project-name">겁쟁이 용사 이야기</h3>
+      <h3 class="project-name" id="projectNameDisplay">새 프로젝트</h3>
       <p class="project-desc">로그라인 → 시나리오 → 스토리보드 → 애니매틱</p>
     </div>
 
     <div class="steps">
-      <div class="step-card done">
-        <div class="step-icon">✓</div>
+      <div class="step-card">
+        <div class="step-icon">1</div>
         <div class="step-info">
           <p class="step-title">1단계. 시나리오 생성</p>
-          <p class="step-status">완료</p>
+          <p class="step-status">대기 중</p>
         </div>
       </div>
 
-      <div class="step-card active">
+      <div class="step-card">
         <div class="step-icon">2</div>
         <div class="step-info">
           <p class="step-title">2단계. 스토리보드 생성</p>
-          <p class="step-status">진행 중</p>
+          <p class="step-status">대기 중</p>
         </div>
       </div>
 
@@ -58,10 +58,17 @@
     <div class="progress-wrap">
       <div class="progress-labels">
         <span>전체 진행률</span>
-        <span class="progress-percent">45%</span>
+        <span class="progress-percent">0%</span>
       </div>
       <div class="progress-bar">
-        <div class="progress-fill" style="width: 45%;"></div>
+        <div class="progress-fill" style="width: 0%;"></div>
+      </div>
+    </div>
+
+    <div class="glass-card project-archive">
+      <p class="card-label">지난 프로젝트 <span class="section-hint">— 다시 생성 없이 이어보기</span></p>
+      <div class="archive-list" id="archiveList">
+        <p class="empty-state-text">아직 저장된 프로젝트가 없습니다.</p>
       </div>
     </div>
   </aside>
@@ -93,10 +100,10 @@
       </div>
     </section>
 
-    <section class="glass-card new-project-card">
+    <section class="glass-card new-project-card" id="step1Section">
       <div class="new-project-head">
         <h2>새 프로젝트 시작</h2>
-        <p class="new-project-sub">아래 항목을 채워 주세요 — 프론트엔드 프로토타입 화면이며 실제로 전송되지 않습니다.</p>
+        <p class="new-project-sub">아래 항목을 채워 주세요 — 실제 AI 파이프라인이 동작합니다.</p>
       </div>
 
       <!-- 1. Project Information -->
@@ -205,6 +212,22 @@
       </div>
 
       <button class="generate-btn" id="generateBtn">✨ 생성하기</button>
+
+      <!-- 시나리오 결과 (검토 및 수정) — 생성 전에는 숨김 -->
+      <div class="section-block scenario-result-block" id="scenarioResultBlock" hidden>
+        <div class="section-header">
+          <span class="section-eyebrow">결과</span>
+          <h3>생성된 시나리오 — 검토 및 수정</h3>
+          <p class="section-hint">아래 씬 대본을 직접 검토하고 필요하면 수정한 뒤 다음 단계로 진행하세요.</p>
+        </div>
+
+        <textarea class="logline-input scenario-textarea" id="scenarioResultText" rows="16"></textarea>
+
+        <div class="result-actions">
+          <button class="example-btn" id="regenerateScenarioBtn" type="button">🔄 다시 생성</button>
+          <button class="generate-btn inline" id="goToStep2Btn" type="button">2단계로 진행 →</button>
+        </div>
+      </div>
     </section>
 
     <!-- ===================================================== -->
@@ -226,7 +249,7 @@
         <div class="project-info-grid">
           <div class="field">
             <label>샷 개수</label>
-            <div class="chip-group settings-chip-group" data-select="single">
+            <div class="chip-group settings-chip-group" data-select="single" data-field="shotCount">
               <button class="chip" type="button">6컷</button>
               <button class="chip" type="button">8컷</button>
               <button class="chip" type="button">12컷</button>
@@ -236,7 +259,7 @@
 
           <div class="field">
             <label>화면 비율</label>
-            <div class="chip-group settings-chip-group" data-select="single">
+            <div class="chip-group settings-chip-group" data-select="single" data-field="aspectRatio">
               <button class="chip" type="button">16:9</button>
               <button class="chip" type="button">9:16</button>
               <button class="chip" type="button">1:1</button>
@@ -245,7 +268,7 @@
 
           <div class="field">
             <label>카메라 스타일</label>
-            <div class="chip-group settings-chip-group" data-select="single">
+            <div class="chip-group settings-chip-group" data-select="single" data-field="cameraStyle">
               <button class="chip" type="button">시네마틱</button>
               <button class="chip" type="button">다큐멘터리</button>
               <button class="chip" type="button">애니메이션</button>
@@ -254,8 +277,8 @@
           </div>
 
           <div class="field">
-            <label>색감</label>
-            <div class="chip-group settings-chip-group" data-select="single">
+            <label>색감 <span class="section-hint">— 콘티는 흑백 스케치라 반영되지 않음</span></label>
+            <div class="chip-group settings-chip-group" data-select="single" data-field="colorTone">
               <button class="chip" type="button">따뜻한</button>
               <button class="chip" type="button">차가운</button>
               <button class="chip" type="button">어두운</button>
@@ -266,69 +289,27 @@
         </div>
       </div>
 
-      <!-- Character Preview -->
-      <div class="section-block">
-        <div class="section-header">
-          <h3>캐릭터 프리뷰</h3>
-        </div>
-
-        <div class="character-grid">
-          <div class="character-card">
-            <div class="character-avatar">🧑</div>
-            <p class="character-name">이안</p>
-            <p class="character-meta">17세</p>
-            <p class="character-personality">겁이 많지만 마음이 따뜻한 마을 소년</p>
-          </div>
-          <div class="character-card">
-            <div class="character-avatar">🧕</div>
-            <p class="character-name">소라</p>
-            <p class="character-meta">16세</p>
-            <p class="character-personality">당차고 영리한 이안의 어릴 적 친구</p>
-          </div>
-          <div class="character-card">
-            <div class="character-avatar">🐉</div>
-            <p class="character-name">칼릭스</p>
-            <p class="character-meta">나이 불명</p>
-            <p class="character-personality">오래되고 냉소적인 마을 뒷산의 용</p>
-          </div>
-        </div>
-      </div>
-
       <!-- Storyboard Preview -->
       <div class="section-block">
         <div class="section-header">
           <h3>스토리보드 프리뷰</h3>
         </div>
 
-        <div class="storyboard-grid">
-          <div class="storyboard-card">
-            <div class="storyboard-thumb"><span class="storyboard-scene-badge">씬 1</span>🖼️</div>
-            <div class="storyboard-body"><p class="storyboard-desc">와이드 샷 — 이안이 마을 입구에 서서 뒷산을 바라본다.</p></div>
-          </div>
-          <div class="storyboard-card">
-            <div class="storyboard-thumb"><span class="storyboard-scene-badge">씬 2</span>🖼️</div>
-            <div class="storyboard-body"><p class="storyboard-desc">클로즈업 — 이안의 떨리는 손이 낡은 검을 움켜쥔다.</p></div>
-          </div>
-          <div class="storyboard-card">
-            <div class="storyboard-thumb"><span class="storyboard-scene-badge">씬 3</span>🖼️</div>
-            <div class="storyboard-body"><p class="storyboard-desc">미디엄 샷 — 소라가 이안에게 지도를 건네며 응원한다.</p></div>
-          </div>
-          <div class="storyboard-card">
-            <div class="storyboard-thumb"><span class="storyboard-scene-badge">씬 4</span>🖼️</div>
-            <div class="storyboard-body"><p class="storyboard-desc">항공 샷 — 마을을 떠나 산길을 오르는 이안의 뒷모습.</p></div>
-          </div>
-          <div class="storyboard-card">
-            <div class="storyboard-thumb"><span class="storyboard-scene-badge">씬 5</span>🖼️</div>
-            <div class="storyboard-body"><p class="storyboard-desc">로우 앵글 — 동굴 앞에서 칼릭스의 그림자가 드리운다.</p></div>
-          </div>
-          <div class="storyboard-card">
-            <div class="storyboard-thumb"><span class="storyboard-scene-badge">씬 6</span>🖼️</div>
-            <div class="storyboard-body"><p class="storyboard-desc">투 샷 — 이안과 칼릭스가 서로를 마주보고 대치한다.</p></div>
-          </div>
+        <div class="storyboard-grid" id="storyboardGrid">
+          <p class="empty-state-text">아직 스토리보드가 생성되지 않았습니다. 아래 설정을 확인하고 "스토리보드 생성"을 눌러 주세요.</p>
         </div>
       </div>
 
+      <!-- 이미지 생성 실패 경고 — 생성 전에는 숨김 -->
+      <div class="warning-block" id="storyboardImageWarning" hidden></div>
+
       <button class="generate-btn" id="storyboardGenerateBtn">스토리보드 생성</button>
+
+      <!-- 생성 결과 액션 — 생성 전에는 숨김 -->
+      <div class="result-actions" id="storyboardResultActions" hidden>
+        <button class="example-btn" id="regenerateStoryboardBtn" type="button">🔄 다시 생성</button>
+        <button class="generate-btn inline" id="goToStep3Btn" type="button">3단계로 진행 →</button>
+      </div>
     </section>
 
     <!-- ===================================================== -->
@@ -347,29 +328,13 @@
           <h3>타임라인</h3>
         </div>
 
-        <div class="timeline">
-          <div class="timeline-item">
-            <span class="timeline-time">00:00</span>
-            <span class="timeline-dot"></span>
-            <span class="timeline-scene">씬 1</span>
-          </div>
-          <div class="timeline-item">
-            <span class="timeline-time">00:08</span>
-            <span class="timeline-dot"></span>
-            <span class="timeline-scene">씬 2</span>
-          </div>
-          <div class="timeline-item">
-            <span class="timeline-time">00:16</span>
-            <span class="timeline-dot"></span>
-            <span class="timeline-scene">씬 3</span>
-          </div>
-          <div class="timeline-item">
-            <span class="timeline-time">00:24</span>
-            <span class="timeline-dot"></span>
-            <span class="timeline-scene">씬 4</span>
-          </div>
+        <div class="timeline" id="timelineList">
+          <p class="empty-state-text">아직 애니매틱이 생성되지 않았습니다. 아래 "애니매틱 생성"을 눌러 주세요.</p>
         </div>
       </div>
+
+      <!-- 검증 경고 — 생성 전에는 숨김 -->
+      <div class="warning-block" id="validationWarning" hidden></div>
 
       <!-- Video Preview -->
       <div class="section-block">
@@ -377,13 +342,18 @@
           <h3>비디오 미리보기</h3>
         </div>
 
-        <div class="video-preview">
+        <div class="video-preview" id="videoPreview">
           <span class="video-preview-icon">▶</span>
           <span>비디오 미리보기</span>
         </div>
       </div>
 
       <button class="generate-btn" id="animaticGenerateBtn">애니매틱 생성</button>
+
+      <!-- 생성 결과 액션 — 생성 전에는 숨김 -->
+      <div class="result-actions" id="animaticResultActions" hidden>
+        <a class="example-btn" id="downloadDocxBtn" href="#" download>📄 콘티 다운로드</a>
+      </div>
     </section>
 
     <section class="info-cards">
@@ -408,6 +378,11 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="loading-overlay" id="loadingOverlay" hidden>
+  <div class="spinner"></div>
+  <p class="loading-text" id="loadingText">생성 중입니다...</p>
+</div>
 
 <script src="script.js"></script>
 </body>

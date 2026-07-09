@@ -5,7 +5,25 @@ zoompan 떨림 방지: 입력 이미지를 초고해상도로 업스케일 후 z
 """
 import json, subprocess, sys, os, math
 
-FONT = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(errors="replace")
+
+_FONT_CANDIDATES = [
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",  # Linux (Noto CJK)
+    "/System/Library/Fonts/Supplemental/AppleSDGothicNeo.ttc",  # macOS
+    r"C:\Windows\Fonts\malgun.ttf",  # Windows (맑은 고딕)
+]
+
+def _default_font():
+    for path in _FONT_CANDIDATES:
+        if os.path.exists(path):
+            return path
+    return _FONT_CANDIDATES[0]
+
+FONT = os.environ.get("STORYMAKER_FONT", _default_font())
+# ffmpeg 필터 문법에서 ':'는 옵션 구분자라 Windows 경로("C:\...")를 그대로 넣으면 파싱이 깨짐.
+# 콜론 하나만 백슬래시로 escape하면 파싱 에러가 나고, 실측 결과 백슬래시 2개가 필요함.
+FONT_FOR_FILTER = FONT.replace("\\", "/").replace(":", "\\\\:")
 W, H = 1280, 720
 UPSCALE_W = 6400  # 떨림 방지용 업스케일 폭 (출력의 5배)
 
@@ -44,20 +62,20 @@ def motion_filter(motion, dur, fps):
 def overlay_filters(ov):
     f = []
     if ov.get("info"):
-        f.append(f"drawtext=fontfile={FONT}:text='{esc(ov['info'])}':fontcolor=white@0.85:fontsize=26:x=30:y=26:box=1:boxcolor=black@0.45:boxborderw=10")
+        f.append(f"drawtext=fontfile={FONT_FOR_FILTER}:text='{esc(ov['info'])}':fontcolor=white@0.85:fontsize=26:x=30:y=26:box=1:boxcolor=black@0.45:boxborderw=10")
     if ov.get("caption"):
-        f.append(f"drawtext=fontfile={FONT}:text='{esc(ov['caption'])}':fontcolor=white:fontsize=36:x=(w-text_w)/2:y=h-110:box=1:boxcolor=black@0.6:boxborderw=14")
+        f.append(f"drawtext=fontfile={FONT_FOR_FILTER}:text='{esc(ov['caption'])}':fontcolor=white:fontsize=36:x=(w-text_w)/2:y=h-110:box=1:boxcolor=black@0.6:boxborderw=14")
     if ov.get("audio_note"):
-        f.append(f"drawtext=fontfile={FONT}:text='♪ {esc(ov['audio_note'])}':fontcolor=white@0.7:fontsize=24:x=(w-text_w)/2:y=h-52:box=1:boxcolor=black@0.4:boxborderw=8")
+        f.append(f"drawtext=fontfile={FONT_FOR_FILTER}:text='♪ {esc(ov['audio_note'])}':fontcolor=white@0.7:fontsize=24:x=(w-text_w)/2:y=h-52:box=1:boxcolor=black@0.4:boxborderw=8")
     return f
 
 def title_card(text, dur, fps, out):
-    vf = f"drawtext=fontfile={FONT}:text='{esc(text)}':fontcolor=white:fontsize=44:x=(w-text_w)/2:y=(h-text_h)/2"
+    vf = f"drawtext=fontfile={FONT_FOR_FILTER}:text='{esc(text)}':fontcolor=white:fontsize=44:x=(w-text_w)/2:y=(h-text_h)/2"
     run(["ffmpeg","-y","-f","lavfi","-i",f"color=black:s={W}x{H}:r={fps}","-t",str(dur),
          "-vf",vf,"-c:v","libx264","-pix_fmt","yuv420p",out])
 
 def run(cmd):
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if r.returncode != 0:
         print("FFMPEG ERROR:", r.stderr[-600:]); sys.exit(1)
 
@@ -94,9 +112,12 @@ def main(timeline_path, output):
         clips.append(out)
 
     # 전환: 현재 버전은 하드컷 concat (디졸브는 xfade로 확장 가능)
-    with open("_clips/concat.txt","w") as f:
+    with open("_clips/concat.txt","w",encoding="utf-8") as f:
         for c in clips: f.write(f"file '{os.path.abspath(c)}'\n")
-    run(["ffmpeg","-y","-f","concat","-safe","0","-i","_clips/concat.txt","-c","copy",output])
+    # +faststart: moov 원자를 파일 앞으로 옮겨 브라우저 <video> 스트리밍 재생을 가능하게 함
+    # (없으면 moov가 mdat 뒤에 남아 일부 브라우저가 재생을 거부함)
+    run(["ffmpeg","-y","-f","concat","-safe","0","-i","_clips/concat.txt","-c","copy",
+         "-movflags","+faststart",output])
     dur = subprocess.run(["ffprobe","-v","quiet","-show_entries","format=duration","-of","csv=p=0",output],
                          capture_output=True, text=True).stdout.strip()
     print(f"OK: {output} ({float(dur):.1f}s, cuts={len(clips)})")

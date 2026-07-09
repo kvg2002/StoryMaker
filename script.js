@@ -1,5 +1,5 @@
 // ==========================================================================
-// StoryMaker — static front-end only. No backend, no API, no AI calls.
+// StoryMaker — front-end wired to the real FastAPI backend (server.py).
 // ==========================================================================
 
 const GENRES = [
@@ -109,6 +109,23 @@ const TONES = [
 const EXAMPLE_LOGLINE =
   "겁쟁이 청년이 마을을 지키기 위해 용과 맞서야 하며, 그 과정에서 몰랐던 용기를 발견한다.";
 
+// ---------------------------------------------------------------------
+// Shared front-end state for the 3-step pipeline (populated by real
+// /api/scenario, /api/storyboard, /api/animatic responses).
+// ---------------------------------------------------------------------
+const AppState = {
+  sceneScript: "",
+  projectSlug: "",
+  shots: [],
+  animaticDone: false,
+};
+
+let currentStepNumber = 1;
+
+// Assigned inside initStepNavigation(); lets result-block buttons switch
+// the visible step panel without duplicating the nav logic.
+let goToStep = () => {};
+
 document.addEventListener("DOMContentLoaded", () => {
   renderGenreGrid();
   renderChipGroup("audienceChips", AUDIENCES, "audienceReadout", "선택된 관객");
@@ -116,6 +133,12 @@ document.addEventListener("DOMContentLoaded", () => {
   initCharCounter();
   initExampleButton();
   initGenerateButton();
+  initSettingsChipGroups();
+  initStoryboardGenerateButton();
+  initAnimaticGenerateButton();
+  initResultActionButtons();
+  initStepNavigation();
+  loadProjectArchive();
 });
 
 // ---------------------------------------------------------------------
@@ -164,6 +187,11 @@ function selectGenre(id) {
   document.getElementById("genreInfoPanel").classList.add("active");
 }
 
+function getSelectedGenreName() {
+  const card = document.querySelector(".genre-card.selected");
+  return card ? card.querySelector(".genre-card-name").textContent : "";
+}
+
 // ---------------------------------------------------------------------
 // Chip groups (Target Audience / Story Tone) — multi-select
 // ---------------------------------------------------------------------
@@ -198,6 +226,12 @@ function renderChipGroup(containerId, items, readoutId, readoutLabel) {
   }
 }
 
+function getSelectedChipValues(containerId) {
+  return Array.from(document.querySelectorAll(`#${containerId} .chip.selected`)).map(
+    (chip) => chip.textContent
+  );
+}
+
 // ---------------------------------------------------------------------
 // Character counter
 // ---------------------------------------------------------------------
@@ -225,16 +259,6 @@ function initExampleButton() {
   });
 }
 
-// ---------------------------------------------------------------------
-// Generate button — UI-only feedback, no backend/API involved
-// ---------------------------------------------------------------------
-function initGenerateButton() {
-  const button = document.getElementById("generateBtn");
-  button.addEventListener("click", () => {
-    showToast("UI 프로토타입입니다 — 백엔드는 추후 연동됩니다.");
-  });
-}
-
 function showToast(message) {
   const toast = document.getElementById("toast");
   toast.textContent = message;
@@ -245,24 +269,189 @@ function showToast(message) {
   }, 2600);
 }
 
-// ==========================================================================
-// STEP 2 (스토리보드 생성) & STEP 3 (애니매틱 생성) — additive only.
-// Nothing above this line is modified. Still no backend, no API, no AI calls.
-// ==========================================================================
+// ---------------------------------------------------------------------
+// Loading overlay — shows an elapsed-time counter so a genuinely slow
+// (but working) Gemini call doesn't look like it's frozen.
+// ---------------------------------------------------------------------
+let loadingTimerId = null;
+let loadingStartedAt = 0;
 
-const PROTOTYPE_TOAST_MESSAGE = "UI Prototype입니다. 백엔드는 추후 연결됩니다.";
+function showLoading(baseText) {
+  loadingStartedAt = Date.now();
+  updateLoadingText(baseText);
+  document.getElementById("loadingOverlay").hidden = false;
 
-document.addEventListener("DOMContentLoaded", () => {
-  initSettingsChipGroups();
-  initStoryboardGenerateButton();
-  initAnimaticGenerateButton();
-});
+  clearInterval(loadingTimerId);
+  loadingTimerId = setInterval(() => updateLoadingText(baseText), 1000);
+}
+
+function updateLoadingText(baseText) {
+  const elapsedSec = Math.floor((Date.now() - loadingStartedAt) / 1000);
+  document.getElementById("loadingText").textContent = `${baseText} (${elapsedSec}초 경과)`;
+}
+
+function hideLoading() {
+  clearInterval(loadingTimerId);
+  loadingTimerId = null;
+  document.getElementById("loadingOverlay").hidden = true;
+}
 
 // ---------------------------------------------------------------------
-// Settings chip groups (STEP 2 shot/style options, STEP 3 video options)
-// data-select="single" -> only one chip active at a time (radio-like)
-// data-select="multi"  -> chips toggle independently (checkbox-like)
+// Backend fetch helper — aborts after timeoutMs so a genuinely stuck
+// request surfaces as an error instead of spinning forever.
 // ---------------------------------------------------------------------
+async function postJSON(url, body, timeoutMs = 180000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  let response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new Error("서버 응답이 너무 오래 걸려 요청을 중단했습니다. 잠시 후 다시 시도해 주세요.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  if (!response.ok) {
+    let detail = response.statusText;
+    try {
+      const errorData = await response.json();
+      if (errorData && errorData.detail) {
+        detail = typeof errorData.detail === "string" ? errorData.detail : JSON.stringify(errorData.detail);
+      }
+    } catch {
+      // response body wasn't JSON — keep statusText
+    }
+    throw new Error(detail);
+  }
+
+  return response.json();
+}
+
+// ---------------------------------------------------------------------
+// Sidebar step cards + progress bar — reflect real pipeline state
+// (which steps actually produced a result) instead of static mock data.
+// ---------------------------------------------------------------------
+function updateSidebarProgress() {
+  const stepsDone = [
+    Boolean(AppState.sceneScript),
+    AppState.shots.length > 0,
+    AppState.animaticDone,
+  ];
+
+  const sidebarCards = document.querySelectorAll(".sidebar .steps .step-card");
+  sidebarCards.forEach((card, i) => {
+    const stepNumber = i + 1;
+    const icon = card.querySelector(".step-icon");
+    const status = card.querySelector(".step-status");
+
+    card.classList.remove("done", "active");
+
+    if (stepsDone[i]) {
+      card.classList.add("done");
+      icon.textContent = "✓";
+      status.textContent = "완료";
+    } else if (stepNumber === currentStepNumber) {
+      card.classList.add("active");
+      icon.textContent = String(stepNumber);
+      status.textContent = "진행 중";
+    } else {
+      icon.textContent = String(stepNumber);
+      status.textContent = "대기 중";
+    }
+  });
+
+  const completedCount = stepsDone.filter(Boolean).length;
+  const percent = Math.round((completedCount / stepsDone.length) * 100);
+  document.querySelector(".progress-percent").textContent = `${percent}%`;
+  document.querySelector(".progress-fill").style.width = `${percent}%`;
+}
+
+// ---------------------------------------------------------------------
+// Warning list rendering (image_failures / validation_flags) — shared
+// by STEP 2 and STEP 3, built with textContent only (no HTML injection).
+// ---------------------------------------------------------------------
+function renderWarningBlock(elementId, title, items) {
+  const el = document.getElementById(elementId);
+  el.innerHTML = "";
+
+  if (!items || items.length === 0) {
+    el.hidden = true;
+    return;
+  }
+
+  const heading = document.createElement("p");
+  heading.className = "warning-block-title";
+  heading.textContent = title;
+
+  const list = document.createElement("ul");
+  items.forEach((message) => {
+    const li = document.createElement("li");
+    li.textContent = message;
+    list.appendChild(li);
+  });
+
+  el.appendChild(heading);
+  el.appendChild(list);
+  el.hidden = false;
+}
+
+// ==========================================================================
+// STEP 1 — Scenario generation
+// ==========================================================================
+function initGenerateButton() {
+  const button = document.getElementById("generateBtn");
+  button.addEventListener("click", () => generateScenario());
+}
+
+async function generateScenario() {
+  const logline = document.getElementById("loglineInput").value.trim();
+  if (!logline) {
+    showToast("로그라인을 입력해 주세요.");
+    return;
+  }
+
+  const payload = {
+    logline,
+    title: document.getElementById("projectTitle").value.trim(),
+    length: document.getElementById("movieLength").value,
+    genre: getSelectedGenreName(),
+    audience: getSelectedChipValues("audienceChips"),
+    tone: getSelectedChipValues("toneChips"),
+  };
+
+  showLoading("시나리오를 생성하는 중입니다... 보통 30~60초 정도 걸려요.");
+  try {
+    const data = await postJSON("/api/scenario", payload);
+    AppState.sceneScript = data.scene_script;
+    AppState.projectSlug = data.project_slug;
+
+    document.getElementById("scenarioResultText").value = data.scene_script;
+    document.getElementById("scenarioResultBlock").hidden = false;
+    document.getElementById("projectNameDisplay").textContent =
+      payload.title || (logline.length > 24 ? `${logline.slice(0, 24)}…` : logline);
+    updateSidebarProgress();
+    loadProjectArchive();
+    showToast("시나리오가 생성되었습니다.");
+  } catch (err) {
+    showToast(`시나리오 생성 실패: ${err.message}`);
+  } finally {
+    hideLoading();
+  }
+}
+
+// ==========================================================================
+// STEP 2 — Storyboard generation
+// ==========================================================================
 function initSettingsChipGroups() {
   document.querySelectorAll(".settings-chip-group").forEach((group) => {
     const isMulti = group.dataset.select === "multi";
@@ -281,40 +470,364 @@ function initSettingsChipGroups() {
   });
 }
 
-// ---------------------------------------------------------------------
-// STEP 2 — Storyboard generate button (UI-only, no backend/API)
-// ---------------------------------------------------------------------
+function getSelectedSettingsChipValue(fieldName) {
+  const group = document.querySelector(`.settings-chip-group[data-field="${fieldName}"]`);
+  if (!group) return "";
+  const chip = group.querySelector(".chip.selected");
+  return chip ? chip.textContent : "";
+}
+
 function initStoryboardGenerateButton() {
   const button = document.getElementById("storyboardGenerateBtn");
   if (!button) return;
-  button.addEventListener("click", () => {
-    showToast(PROTOTYPE_TOAST_MESSAGE);
+  button.addEventListener("click", () => generateStoryboard());
+}
+
+async function generateStoryboard() {
+  if (!AppState.sceneScript) {
+    showToast("먼저 1단계에서 시나리오를 생성해 주세요.");
+    return;
+  }
+
+  const payload = {
+    scene_script: AppState.sceneScript,
+    project_slug: AppState.projectSlug,
+    shot_count: getSelectedSettingsChipValue("shotCount"),
+    camera_style: getSelectedSettingsChipValue("cameraStyle"),
+  };
+
+  showLoading("스토리보드와 콘티 이미지를 생성하는 중입니다... 샷 수에 따라 1~3분 정도 걸릴 수 있어요.");
+  try {
+    const data = await postJSON("/api/storyboard", payload, 300000);
+    AppState.shots = data.shots;
+
+    renderStoryboardShots(data.shots);
+    renderWarningBlock(
+      "storyboardImageWarning",
+      "⚠ 일부 콘티 이미지 생성에 실패했습니다",
+      data.image_failures
+    );
+    document.getElementById("storyboardResultActions").hidden = false;
+    updateSidebarProgress();
+    loadProjectArchive();
+    showToast("스토리보드가 생성되었습니다.");
+  } catch (err) {
+    showToast(`스토리보드 생성 실패: ${err.message}`);
+  } finally {
+    hideLoading();
+  }
+}
+
+// Card layout mirrors the team's 5-column docx format (Cut/Video/Content/
+// Audio/Time — agents/storyboard/prompts/training.md PART 8) so the on-screen
+// preview and the exported .docx show the same information.
+function renderStoryboardShots(shots) {
+  const grid = document.getElementById("storyboardGrid");
+  grid.innerHTML = "";
+
+  shots.forEach((shot, i) => {
+    const card = document.createElement("div");
+    card.className = "storyboard-card";
+
+    const thumb = document.createElement("div");
+    thumb.className = "storyboard-thumb";
+
+    const badge = document.createElement("span");
+    badge.className = "storyboard-scene-badge";
+    badge.textContent = `CUT ${i + 1}`;
+    thumb.appendChild(badge);
+
+    if (shot.image_url) {
+      const img = document.createElement("img");
+      img.src = shot.image_url;
+      img.alt = `컷 ${i + 1}`;
+      thumb.appendChild(img);
+    } else {
+      thumb.appendChild(document.createTextNode("🖼️"));
+    }
+
+    const body = document.createElement("div");
+    body.className = "storyboard-body";
+
+    if (shot.sceneSlug) {
+      const scene = document.createElement("p");
+      scene.className = "storyboard-scene-slug";
+      scene.textContent = shot.sceneSlug;
+      body.appendChild(scene);
+    }
+
+    const notation = document.createElement("p");
+    notation.className = "storyboard-notation";
+    notation.textContent = shot.notation || "";
+    body.appendChild(notation);
+
+    const desc = document.createElement("p");
+    desc.className = "storyboard-desc";
+    desc.textContent = shot.description || "";
+    body.appendChild(desc);
+
+    const audioText = [shot.dialogue, shot.audio].filter(Boolean).join(" / ");
+    const audio = document.createElement("p");
+    audio.className = "storyboard-audio";
+    const audioLabel = document.createElement("strong");
+    audioLabel.textContent = "Audio ";
+    audio.appendChild(audioLabel);
+    audio.appendChild(document.createTextNode(audioText || "—"));
+    body.appendChild(audio);
+
+    const time = document.createElement("p");
+    time.className = "storyboard-time";
+    const timeLabel = document.createElement("strong");
+    timeLabel.textContent = "Time ";
+    time.appendChild(timeLabel);
+    time.appendChild(document.createTextNode(shot.duration ? `${shot.duration}초` : "—"));
+    body.appendChild(time);
+
+    card.appendChild(thumb);
+    card.appendChild(body);
+    grid.appendChild(card);
   });
 }
 
-// ---------------------------------------------------------------------
-// STEP 3 — Animatic generate button (UI-only, no backend/API)
-// ---------------------------------------------------------------------
+// ==========================================================================
+// STEP 3 — Animatic generation
+// ==========================================================================
 function initAnimaticGenerateButton() {
   const button = document.getElementById("animaticGenerateBtn");
   if (!button) return;
-  button.addEventListener("click", () => {
-    showToast(PROTOTYPE_TOAST_MESSAGE);
+  button.addEventListener("click", () => generateAnimatic());
+}
+
+async function generateAnimatic() {
+  if (!AppState.shots.length) {
+    showToast("먼저 2단계에서 스토리보드를 생성해 주세요.");
+    return;
+  }
+
+  const payload = {
+    scene_script: AppState.sceneScript,
+    project_slug: AppState.projectSlug,
+    shots: AppState.shots,
+  };
+
+  showLoading("애니매틱을 렌더링하는 중입니다... 최대 1~2분 정도 걸릴 수 있어요.");
+  try {
+    const data = await postJSON("/api/animatic", payload, 240000);
+
+    renderTimeline(AppState.shots);
+    renderVideoPreview(data.video_url);
+    renderDocxLink(data.docx_url);
+    renderWarningBlock("validationWarning", "⚠ 타임라인 검증 경고", data.validation_flags);
+    AppState.animaticDone = true;
+    updateSidebarProgress();
+    loadProjectArchive();
+    showToast("애니매틱 생성이 완료되었습니다.");
+  } catch (err) {
+    showToast(`애니매틱 생성 실패: ${err.message}`);
+  } finally {
+    hideLoading();
+  }
+}
+
+function formatTimestamp(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = Math.floor(totalSeconds % 60);
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function renderTimeline(shots) {
+  const list = document.getElementById("timelineList");
+  list.innerHTML = "";
+
+  let elapsed = 0;
+  shots.forEach((shot, i) => {
+    const item = document.createElement("div");
+    item.className = "timeline-item";
+
+    const time = document.createElement("span");
+    time.className = "timeline-time";
+    time.textContent = formatTimestamp(elapsed);
+
+    const dot = document.createElement("span");
+    dot.className = "timeline-dot";
+
+    const scene = document.createElement("span");
+    scene.className = "timeline-scene";
+    scene.textContent = shot.sceneSlug || `씬 ${i + 1}`;
+
+    item.appendChild(time);
+    item.appendChild(dot);
+    item.appendChild(scene);
+    list.appendChild(item);
+
+    elapsed += shot.duration || 0;
   });
 }
 
-// ==========================================================================
-// Single Step View navigation — additive only.
-// Clicking a sidebar step card or a top pipeline card shows exactly one of
-// the three step panels (STEP 1 / STEP 2 / STEP 3) and keeps the sidebar
-// and pipeline cards' active state in sync. Nothing above this line is
-// touched; no backend, no API.
-// ==========================================================================
+function renderVideoPreview(videoUrl) {
+  const container = document.getElementById("videoPreview");
+  container.innerHTML = "";
 
-document.addEventListener("DOMContentLoaded", () => {
-  initStepNavigation();
-});
+  if (videoUrl) {
+    const video = document.createElement("video");
+    video.src = videoUrl;
+    video.controls = true;
+    container.appendChild(video);
+    return;
+  }
 
+  const icon = document.createElement("span");
+  icon.className = "video-preview-icon";
+  icon.textContent = "▶";
+  const label = document.createElement("span");
+  label.textContent = "영상 렌더링에 실패했습니다. ffmpeg 설치 상태를 확인해 주세요.";
+  container.appendChild(icon);
+  container.appendChild(label);
+}
+
+function renderDocxLink(docxUrl) {
+  const link = document.getElementById("downloadDocxBtn");
+  const actions = document.getElementById("animaticResultActions");
+
+  if (docxUrl) {
+    link.href = docxUrl;
+    link.classList.remove("disabled-link");
+  } else {
+    link.removeAttribute("href");
+    link.classList.add("disabled-link");
+  }
+  actions.hidden = false;
+}
+
+// ==========================================================================
+// Project archive — lets a past project be reloaded without regenerating
+// (avoids re-spending Gemini tokens after a page refresh).
+// ==========================================================================
+async function loadProjectArchive() {
+  let projects;
+  try {
+    const response = await fetch("/api/projects");
+    if (!response.ok) return;
+    projects = await response.json();
+  } catch {
+    return;
+  }
+
+  const list = document.getElementById("archiveList");
+  list.innerHTML = "";
+
+  if (!projects.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state-text";
+    empty.textContent = "아직 저장된 프로젝트가 없습니다.";
+    list.appendChild(empty);
+    return;
+  }
+
+  projects.forEach((project) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "archive-item";
+
+    const title = document.createElement("p");
+    title.className = "archive-item-title";
+    title.textContent = project.title;
+
+    const progress = document.createElement("p");
+    progress.className = "archive-item-progress";
+    if (project.has_animatic) {
+      progress.textContent = "✓ 애니매틱까지 완료";
+    } else if (project.has_storyboard) {
+      progress.textContent = "✓ 스토리보드까지 완료";
+    } else {
+      progress.textContent = "시나리오만 생성됨";
+    }
+
+    item.appendChild(title);
+    item.appendChild(progress);
+    item.addEventListener("click", () => loadProject(project.slug));
+    list.appendChild(item);
+  });
+}
+
+async function loadProject(slug) {
+  showLoading("저장된 프로젝트를 불러오는 중입니다...");
+  try {
+    const response = await fetch(`/api/projects/${encodeURIComponent(slug)}`);
+    if (!response.ok) throw new Error("프로젝트를 불러오지 못했습니다.");
+    const project = await response.json();
+
+    AppState.sceneScript = project.scene_script;
+    AppState.projectSlug = project.slug;
+    AppState.shots = project.shots;
+    AppState.animaticDone = Boolean(project.video_url || project.docx_url);
+
+    document.getElementById("projectNameDisplay").textContent = project.title;
+    document.getElementById("scenarioResultText").value = project.scene_script;
+    document.getElementById("scenarioResultBlock").hidden = false;
+
+    let targetStep = 1;
+    if (project.shots.length) {
+      renderStoryboardShots(project.shots);
+      renderWarningBlock(
+        "storyboardImageWarning",
+        "⚠ 일부 콘티 이미지 생성에 실패했습니다",
+        project.image_failures
+      );
+      document.getElementById("storyboardResultActions").hidden = false;
+      targetStep = 2;
+    }
+    if (project.docx_url || project.video_url) {
+      renderTimeline(project.shots);
+      renderVideoPreview(project.video_url);
+      renderDocxLink(project.docx_url);
+      renderWarningBlock("validationWarning", "⚠ 타임라인 검증 경고", project.validation_flags);
+      targetStep = 3;
+    }
+
+    updateSidebarProgress();
+    goToStep(targetStep, true);
+    showToast(`"${project.title}" 프로젝트를 불러왔습니다.`);
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    hideLoading();
+  }
+}
+
+// ==========================================================================
+// Result-block action buttons — regenerate / advance to next step
+// ==========================================================================
+function initResultActionButtons() {
+  const regenerateScenarioBtn = document.getElementById("regenerateScenarioBtn");
+  if (regenerateScenarioBtn) {
+    regenerateScenarioBtn.addEventListener("click", () => generateScenario());
+  }
+
+  const goToStep2Btn = document.getElementById("goToStep2Btn");
+  if (goToStep2Btn) {
+    goToStep2Btn.addEventListener("click", () => {
+      AppState.sceneScript = document.getElementById("scenarioResultText").value;
+      goToStep(2, true);
+    });
+  }
+
+  const regenerateStoryboardBtn = document.getElementById("regenerateStoryboardBtn");
+  if (regenerateStoryboardBtn) {
+    regenerateStoryboardBtn.addEventListener("click", () => generateStoryboard());
+  }
+
+  const goToStep3Btn = document.getElementById("goToStep3Btn");
+  if (goToStep3Btn) {
+    goToStep3Btn.addEventListener("click", () => goToStep(3, true));
+  }
+}
+
+// ==========================================================================
+// Single Step View navigation — clicking a sidebar step card or a top
+// pipeline card shows exactly one of the three step panels (STEP 1 / STEP 2
+// / STEP 3) and keeps the sidebar and pipeline cards' active state in sync.
+// ==========================================================================
 function initStepNavigation() {
   const panels = document.querySelectorAll(".main > .new-project-card");
   const sidebarCards = document.querySelectorAll(".sidebar .steps .step-card");
@@ -340,9 +853,8 @@ function initStepNavigation() {
       }
     });
 
-    sidebarCards.forEach((card, i) => {
-      card.classList.toggle("active", i === stepNumber - 1);
-    });
+    currentStepNumber = stepNumber;
+    updateSidebarProgress();
 
     pipelineCards.forEach((card, i) => {
       card.classList.toggle("active", i === stepNumber - 1);
@@ -357,5 +869,6 @@ function initStepNavigation() {
     card.addEventListener("click", () => setStep(i + 1, true));
   });
 
+  goToStep = setStep;
   setStep(initialStep, false);
 }

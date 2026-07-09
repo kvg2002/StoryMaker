@@ -34,17 +34,18 @@ def slugify_logline(logline: str) -> str:
     return slug[:40] or "storymaker"
 
 
-def run_from_storyboard(
-    scenario: ScenarioOutput, storyboard: StoryboardOutput, project_dir: Path
+def finalize_from_storyboard(
+    scenario: ScenarioOutput,
+    storyboard: StoryboardOutput,
+    project_dir: Path,
+    image_failures: list[str] | None = None,
 ) -> PipelineResult:
-    """스토리보드 이후 단계(이미지→타임라인→검증→docx→렌더링)만 실행한다.
+    """이미지는 이미 생성돼 있다고 가정하고 나머지(타임라인→검증→docx→렌더링)만 실행한다.
 
-    시나리오/스토리보드를 사람이 검토·수정한 뒤 이어서 진행하는 UI의 3단계 트리거가
-    이 함수를 직접 호출한다 — `run()`처럼 scenario/storyboard를 새로 생성하지 않는다.
+    UI에서 "2단계: 스토리보드(+이미지) 생성"과 "3단계: 애니매틱 생성"을 별도 버튼/요청으로
+    나눠 진행할 때, 3단계 쪽이 이 함수를 호출한다 — 이미지를 다시 만들지 않는다.
     """
     images_dir = project_dir / "images"
-
-    image_failures = generate_contact_sheets(storyboard.shots, images_dir)
 
     timeline = generate_timeline(storyboard.shots)
     validation_flags = validate_timeline(timeline)
@@ -68,10 +69,23 @@ def run_from_storyboard(
         storyboard=storyboard,
         timeline=timeline,
         validation_flags=validation_flags,
-        image_failures=image_failures,
+        image_failures=image_failures or [],
         docx_path=docx_path,
         video_path=video_path,
     )
+
+
+def run_from_storyboard(
+    scenario: ScenarioOutput, storyboard: StoryboardOutput, project_dir: Path
+) -> PipelineResult:
+    """스토리보드 이후 단계(이미지→타임라인→검증→docx→렌더링)를 전부 실행한다.
+
+    시나리오/스토리보드를 사람이 검토·수정한 뒤 이어서 진행하는 흐름이 이 함수를 직접
+    호출한다 — `run()`처럼 scenario/storyboard를 새로 생성하지는 않는다.
+    """
+    images_dir = project_dir / "images"
+    image_failures = generate_contact_sheets(storyboard.shots, images_dir)
+    return finalize_from_storyboard(scenario, storyboard, project_dir, image_failures)
 
 
 def run(logline: str, project_dir: Path | None = None) -> PipelineResult:

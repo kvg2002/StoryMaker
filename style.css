@@ -918,61 +918,6 @@ body {
    above are untouched)
    ========================================================================== */
 
-/* ---------- Character Preview (STEP 2) ---------- */
-.character-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
-}
-
-.character-card {
-  background: rgba(255, 255, 255, 0.75);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  padding: 22px 18px;
-  text-align: center;
-  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), border-color 0.2s var(--ease);
-}
-
-.character-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--purple-200);
-}
-
-.character-avatar {
-  width: 60px;
-  height: 60px;
-  margin: 0 auto 12px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--purple-400), var(--purple-700));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 26px;
-  box-shadow: 0 6px 14px rgba(124, 58, 237, 0.3);
-}
-
-.character-name {
-  margin: 0 0 2px;
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.character-meta {
-  margin: 0;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.character-personality {
-  margin: 10px 0 0;
-  font-size: 13px;
-  color: var(--ink-soft);
-  line-height: 1.5;
-}
-
 /* ---------- Storyboard Preview (STEP 2) ---------- */
 .storyboard-grid {
   display: grid;
@@ -1022,11 +967,41 @@ body {
   padding: 14px 16px;
 }
 
+.storyboard-scene-slug {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--purple-500);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.storyboard-notation {
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
 .storyboard-desc {
   margin: 0;
   font-size: 13px;
   color: var(--ink-soft);
   line-height: 1.5;
+}
+
+.storyboard-audio,
+.storyboard-time {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.storyboard-audio strong,
+.storyboard-time strong {
+  color: var(--ink-soft);
+  font-weight: 700;
 }
 
 /* ---------- Timeline (STEP 3) ---------- */
@@ -1106,14 +1081,12 @@ body {
 
 /* ---------- STEP 2 / STEP 3 responsive (additive, mirrors existing breakpoints) ---------- */
 @media (max-width: 960px) {
-  .character-grid,
   .storyboard-grid {
     grid-template-columns: 1fr 1fr;
   }
 }
 
 @media (max-width: 520px) {
-  .character-grid,
   .storyboard-grid {
     grid-template-columns: 1fr;
   }
@@ -1163,4 +1136,181 @@ body {
 
 .step-fade-in {
   animation: fadeIn 0.35s var(--ease) both;
+}
+
+/* ==========================================================================
+   Real-pipeline result UI — additive only. Scenario review textarea,
+   storyboard/animatic result actions, failure warnings, real cut images,
+   and the global loading overlay used once script.js calls the FastAPI
+   backend instead of just showing a toast.
+   ========================================================================== */
+
+.scenario-textarea {
+  min-height: 340px;
+  line-height: 1.6;
+  font-family: inherit;
+}
+
+.result-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.result-actions[hidden] {
+  display: none;
+}
+
+.result-actions .example-btn {
+  flex: 0 0 auto;
+}
+
+.generate-btn.inline {
+  flex: 1;
+  margin-top: 0;
+}
+
+.result-actions .example-btn.disabled-link {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.warning-block {
+  margin-top: 16px;
+  padding: 14px 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(217, 119, 6, 0.3);
+  background: rgba(217, 119, 6, 0.08);
+}
+
+.warning-block-title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #b45309;
+}
+
+.warning-block ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  color: #92400e;
+  line-height: 1.6;
+}
+
+.project-archive {
+  padding: 18px 20px;
+}
+
+.archive-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.archive-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s var(--ease), transform 0.15s var(--ease);
+}
+
+.archive-item:hover {
+  border-color: var(--purple-400);
+  transform: translateY(-1px);
+}
+
+.archive-item-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.archive-item-progress {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted-soft);
+}
+
+.empty-state-text {
+  margin: 0;
+  padding: 20px 4px;
+  font-size: 13px;
+  color: var(--muted-soft);
+  text-align: center;
+  grid-column: 1 / -1;
+}
+
+.storyboard-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+.video-preview video {
+  width: 100%;
+  border-radius: var(--radius-sm);
+}
+
+/* 크로미움에는 backdrop-filter가 걸린 상위 요소 안의 네이티브 video 컨트롤이
+   클릭에 반응하지 않는 버그가 있음. 별도 컴포지팅 레이어 분리로는 회피가 안 돼서,
+   비디오가 들어가는 3단계 카드에서만 backdrop-filter 자체를 끈다. */
+#step3Section {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* ---------- Loading overlay ---------- */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: rgba(17, 24, 39, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.loading-overlay[hidden] {
+  display: none;
+}
+
+.spinner {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #fff;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-text {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
